@@ -1,0 +1,13 @@
+#!/bin/sh
+# apu-tune: re-apply APU power limits (and optionally a fixed fan level).
+# Firmware resets ryzenadj limits on platform-profile changes, AC events and
+# resume, so apu-tune.timer runs this periodically. Settings: /etc/default/apu-tune
+RYZENADJ_ARGS=""
+FAN_LEVEL=""   # auto | 0-7 | full-speed | disengaged ; empty = leave the fan alone
+[ -r /etc/default/apu-tune ] && . /etc/default/apu-tune
+[ -n "$RYZENADJ_ARGS" ] && /usr/local/bin/ryzenadj $RYZENADJ_ARGS >/dev/null 2>&1
+if [ -n "$FAN_LEVEL" ] && [ -w /proc/acpi/ibm/fan ]; then
+  # NOTE: every level write briefly restarts the EC fan loop (1-2 s dip).
+  echo "level $FAN_LEVEL" > /proc/acpi/ibm/fan 2>/dev/null
+fi
+exit 0

@@ -1,0 +1,21 @@
+---
+galaxy_info:
+  role_name: thinkpad_performance
+  namespace: hpst3r
+  author: William Porter
+  description: >-
+    Lift AMD ThinkPad APU power/skin limits with ryzenadj and run a PID fan
+    controller (tpfand) for maximum sustained performance.
+  license: AGPL-3.0-or-later
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Fedora
+      versions:
+        - all
+  galaxy_tags:
+    - thinkpad
+    - ryzen
+    - ryzenadj
+    - fan
+    - performance
+dependencies: []

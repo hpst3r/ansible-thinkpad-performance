@@ -1,0 +1,50 @@
+---
+# ---------------------------------------------------------------------------
+# APU power limits (ryzenadj), re-applied by apu-tune.timer because the
+# firmware resets them on platform-profile changes, AC events and resume.
+# ---------------------------------------------------------------------------
+thinkpad_performance_ryzenadj_enabled: true
+thinkpad_performance_ryzenadj_repo: "https://github.com/FlyGoat/RyzenAdj.git"
+# Pinned commit (v0.19.0 era, 2026-05-13). Bump deliberately.
+thinkpad_performance_ryzenadj_version: "5775fc3e6dbb25c7030ee2d100a1bdd6e8bf2d0a"
+thinkpad_performance_ryzenadj_src_dir: "/usr/local/src/RyzenAdj"
+# Bounded build parallelism.
+thinkpad_performance_ryzenadj_build_jobs: 4
+
+# Limits in mW. T14 Gen 2a stock (performance profile): STAPM 17000,
+# slow 24000, fast 30000. Firmware caps the STAPM readback at ~30000.
+thinkpad_performance_stapm_limit_mw: 35000
+thinkpad_performance_slow_limit_mw: 35000
+thinkpad_performance_fast_limit_mw: 40000
+# Skin-temperature tracking target (stock 50.5). 105 effectively disables it,
+# leaving Tctl (AMD's own throttle, ~96 °C) as the only limiter.
+thinkpad_performance_apu_skin_temp_c: 105
+# Anything else to pass to ryzenadj, e.g. "--tctl-temp=95".
+thinkpad_performance_ryzenadj_extra_args: ""
+thinkpad_performance_apu_tune_interval_s: 15
+
+# ---------------------------------------------------------------------------
+# Fan control (ThinkPad thinkpad_acpi)
+# ---------------------------------------------------------------------------
+thinkpad_performance_fan_enabled: true
+# true: tpfand (PID daemon) owns the fan.
+# false: apu-tune writes thinkpad_performance_fan_level instead (or leaves the
+#        fan alone when that is empty).
+thinkpad_performance_tpfand_enabled: true
+thinkpad_performance_fan_level: ""
+
+# Overrides merged over tpfand's built-in DEFAULTS (see files/tpfand.py).
+# Keys are validated by the daemon at start-up; unknown keys are ignored.
+# "steps" are measured EC level -> steady rpm pairs; the defaults are for a
+# T14 Gen 2a. Re-measure other models with tools/fan-calibrate.py.
+thinkpad_performance_tpfand_config:
+  setpoint_c: 70.0
+  min_step: 1
+
+# ---------------------------------------------------------------------------
+# tuned
+# ---------------------------------------------------------------------------
+# Profile to activate (and re-activate after a thinkpad_acpi reload, which
+# resets the platform profile to "balanced"). Empty = leave tuned alone, but
+# still re-apply whatever profile was active after a module reload.
+thinkpad_performance_tuned_profile: ""

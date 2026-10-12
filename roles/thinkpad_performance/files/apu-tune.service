@@ -1,0 +1,6 @@
+[Unit]
+Description=Re-apply APU power limits and fan level
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/apu-tune

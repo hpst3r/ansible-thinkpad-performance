@@ -1,0 +1,7 @@
+---
+- name: Tune AMD ThinkPad for maximum sustained performance
+  hosts: laptops
+  roles:
+    - role: thinkpad_performance
+      vars:
+        thinkpad_performance_tuned_profile: latency-performance

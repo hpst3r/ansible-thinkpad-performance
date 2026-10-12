@@ -1,0 +1,6 @@
+# {{ ansible_managed }}
+# Sourced by /usr/local/sbin/apu-tune (every {{ thinkpad_performance_apu_tune_interval_s }} s via apu-tune.timer).
+# Limits in mW; apu-skin-temp in °C.
+RYZENADJ_ARGS="--stapm-limit={{ thinkpad_performance_stapm_limit_mw | int }} --slow-limit={{ thinkpad_performance_slow_limit_mw | int }} --fast-limit={{ thinkpad_performance_fast_limit_mw | int }} --apu-skin-temp={{ thinkpad_performance_apu_skin_temp_c | int }}{{ (' ' ~ thinkpad_performance_ryzenadj_extra_args) if thinkpad_performance_ryzenadj_extra_args else '' }}"
+# Fan level written every run. Must stay empty while tpfand owns the fan.
+FAN_LEVEL={{ '' if (thinkpad_performance_fan_enabled and thinkpad_performance_tpfand_enabled) else thinkpad_performance_fan_level }}

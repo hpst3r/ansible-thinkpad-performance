@@ -1,0 +1,38 @@
+---
+- name: Require an AMD CPU
+  ansible.builtin.assert:
+    that:
+      - "ansible_facts['processor'] | select('search', 'AMD') | list | length > 0"
+    fail_msg: "ryzenadj only supports AMD Ryzen APUs."
+  when: "thinkpad_performance_ryzenadj_enabled"
+
+- name: Read kernel lockdown state
+  ansible.builtin.slurp:
+    src: /sys/kernel/security/lockdown
+  register: thinkpad_performance_lockdown
+  failed_when: false
+  when: "thinkpad_performance_ryzenadj_enabled"
+
+- name: Require kernel lockdown "none" (ryzenadj falls back to /dev/mem)
+  ansible.builtin.assert:
+    that:
+      - "thinkpad_performance_lockdown.content is not defined or
+         '[none]' in (thinkpad_performance_lockdown.content | b64decode)"
+    fail_msg: >-
+      Kernel lockdown is active ({{ thinkpad_performance_lockdown.content | default('') | b64decode | trim }}),
+      usually because Secure Boot is enabled. ryzenadj cannot reach the SMU through /dev/mem;
+      disable Secure Boot or provide a signed ryzen_smu module.
+  when: "thinkpad_performance_ryzenadj_enabled"
+
+- name: Check for the thinkpad_acpi fan interface
+  ansible.builtin.stat:
+    path: /proc/acpi/ibm/fan
+  register: thinkpad_performance_fan_proc
+  when: "thinkpad_performance_fan_enabled"
+
+- name: Require thinkpad_acpi
+  ansible.builtin.assert:
+    that:
+      - "thinkpad_performance_fan_proc.stat.exists"
+    fail_msg: "/proc/acpi/ibm/fan not found: this is not a ThinkPad, or thinkpad_acpi is not loaded."
+  when: "thinkpad_performance_fan_enabled"

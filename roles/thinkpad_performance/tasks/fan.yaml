@@ -1,0 +1,89 @@
+---
+- name: Enable thinkpad_acpi fan control on future boots
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/thinkpad_acpi.conf
+    content: "options thinkpad_acpi fan_control=1\n"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Read current thinkpad_acpi fan_control parameter
+  ansible.builtin.slurp:
+    src: /sys/module/thinkpad_acpi/parameters/fan_control
+  register: thinkpad_performance_fan_control
+
+# Reloading thinkpad_acpi resets the platform profile to "balanced" (tuned does
+# not notice) and resets the keyboard backlight, so re-apply the tuned profile
+# in the same step.
+- name: Reload thinkpad_acpi with fan_control=1 and re-apply the tuned profile
+  become: true
+  ansible.builtin.shell:
+    executable: /bin/bash
+    cmd: |
+      set -euo pipefail
+      profile="{{ thinkpad_performance_tuned_profile }}"
+      [ -n "$profile" ] || profile=$(tuned-adm active 2>/dev/null | sed -n 's/^Current active profile: //p')
+      systemctl stop tpfand.service 2>/dev/null || true
+      modprobe -r thinkpad_acpi
+      modprobe thinkpad_acpi
+      [ -z "$profile" ] || tuned-adm profile "$profile"
+  changed_when: true
+  when: "(thinkpad_performance_fan_control.content | b64decode | trim) != 'Y'"
+
+- name: Install tpfand
+  become: true
+  ansible.builtin.copy:
+    src: tpfand.py
+    dest: /usr/local/sbin/tpfand
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart tpfand
+  when: "thinkpad_performance_tpfand_enabled"
+
+- name: Install tpfand config
+  become: true
+  ansible.builtin.template:
+    src: tpfand.json.j2
+    dest: /etc/tpfand.json
+    owner: root
+    group: root
+    mode: "0644"
+    # The daemon validates the config itself; refuse to install one it rejects.
+    validate: "/usr/local/sbin/tpfand --check-config %s"
+  notify: Restart tpfand
+  when: "thinkpad_performance_tpfand_enabled"
+
+- name: Install tpfand unit
+  become: true
+  ansible.builtin.copy:
+    src: tpfand.service
+    dest: /etc/systemd/system/tpfand.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart tpfand
+  when: "thinkpad_performance_tpfand_enabled"
+
+- name: Flush handlers so the unit exists before enabling
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable tpfand
+  become: true
+  ansible.builtin.systemd_service:
+    name: tpfand.service
+    enabled: true
+    state: started
+  when: "thinkpad_performance_tpfand_enabled"
+
+- name: Disable tpfand when not wanted
+  become: true
+  ansible.builtin.systemd_service:
+    name: tpfand.service
+    enabled: false
+    state: stopped
+  failed_when: false
+  when: "not thinkpad_performance_tpfand_enabled"

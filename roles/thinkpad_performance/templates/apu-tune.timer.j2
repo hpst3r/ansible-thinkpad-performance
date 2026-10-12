@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Re-apply APU power limits every {{ thinkpad_performance_apu_tune_interval_s }} s
+
+[Timer]
+OnBootSec=20s
+OnUnitActiveSec={{ thinkpad_performance_apu_tune_interval_s }}s
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

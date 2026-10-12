@@ -1,0 +1,16 @@
+---
+- name: Read active tuned profile
+  ansible.builtin.command: tuned-adm active
+  register: thinkpad_performance_tuned_active
+  changed_when: false
+  failed_when: false
+  when: "thinkpad_performance_tuned_profile | length > 0"
+
+- name: Activate tuned profile {{ thinkpad_performance_tuned_profile }}
+  become: true
+  ansible.builtin.command:
+    argv: [tuned-adm, profile, "{{ thinkpad_performance_tuned_profile }}"]
+  changed_when: true
+  when:
+    - "thinkpad_performance_tuned_profile | length > 0"
+    - "('Current active profile: ' ~ thinkpad_performance_tuned_profile) not in thinkpad_performance_tuned_active.stdout"

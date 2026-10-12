@@ -1,0 +1,14 @@
+---
+- name: Check that this is an AMD ThinkPad with a usable SMU interface
+  ansible.builtin.import_tasks: preflight.yaml
+
+- name: Manage tuned profile
+  ansible.builtin.import_tasks: tuned.yaml
+
+- name: Build ryzenadj and install the limits re-apply timer
+  ansible.builtin.import_tasks: ryzenadj.yaml
+  when: "thinkpad_performance_ryzenadj_enabled"
+
+- name: Enable thinkpad_acpi fan control and install tpfand
+  ansible.builtin.import_tasks: fan.yaml
+  when: "thinkpad_performance_fan_enabled"

@@ -1,0 +1,100 @@
+---
+- name: Install ryzenadj build dependencies
+  become: true
+  ansible.builtin.dnf:
+    name:
+      - cmake
+      - gcc-c++
+      - make
+      - git
+      - pciutils-devel
+    state: present
+
+- name: Check out RyzenAdj
+  become: true
+  ansible.builtin.git:
+    repo: "{{ thinkpad_performance_ryzenadj_repo }}"
+    dest: "{{ thinkpad_performance_ryzenadj_src_dir }}"
+    version: "{{ thinkpad_performance_ryzenadj_version }}"
+    force: true
+  register: thinkpad_performance_ryzenadj_src
+
+- name: Check for an existing ryzenadj build
+  ansible.builtin.stat:
+    path: "{{ thinkpad_performance_ryzenadj_src_dir }}/build/ryzenadj"
+  register: thinkpad_performance_ryzenadj_built
+
+- name: Configure and build ryzenadj
+  become: true
+  ansible.builtin.shell:
+    cmd: >-
+      cmake -S . -B build -DCMAKE_BUILD_TYPE=Release &&
+      cmake --build build -j {{ thinkpad_performance_ryzenadj_build_jobs | int }}
+    chdir: "{{ thinkpad_performance_ryzenadj_src_dir }}"
+  changed_when: true
+  when: "thinkpad_performance_ryzenadj_src.changed or not thinkpad_performance_ryzenadj_built.stat.exists"
+
+- name: Install ryzenadj
+  become: true
+  ansible.builtin.copy:
+    src: "{{ thinkpad_performance_ryzenadj_src_dir }}/build/ryzenadj"
+    dest: /usr/local/bin/ryzenadj
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Run apu-tune
+
+- name: Install apu-tune script
+  become: true
+  ansible.builtin.copy:
+    src: apu-tune
+    dest: /usr/local/sbin/apu-tune
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Run apu-tune
+
+- name: Install apu-tune settings
+  become: true
+  ansible.builtin.template:
+    src: apu-tune.default.j2
+    dest: /etc/default/apu-tune
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Run apu-tune
+
+- name: Install apu-tune units
+  become: true
+  ansible.builtin.copy:
+    src: apu-tune.service
+    dest: /etc/systemd/system/apu-tune.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Run apu-tune
+
+- name: Install apu-tune timer
+  become: true
+  ansible.builtin.template:
+    src: apu-tune.timer.j2
+    dest: /etc/systemd/system/apu-tune.timer
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart apu-tune timer
+
+- name: Flush handlers so units exist before enabling
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable apu-tune timer
+  become: true
+  ansible.builtin.systemd_service:
+    name: apu-tune.timer
+    enabled: true
+    state: started

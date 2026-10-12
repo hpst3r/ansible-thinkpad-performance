@@ -1,0 +1,19 @@
+[Unit]
+Description=ThinkPad fan controller (PID + power feedforward)
+After=systemd-modules-load.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=notify
+NotifyAccess=main
+ExecStart=/usr/bin/python3 -u /usr/local/sbin/tpfand /etc/tpfand.json
+ExecStopPost=/bin/sh -c 'echo "watchdog 0" > /proc/acpi/ibm/fan; echo "level auto" > /proc/acpi/ibm/fan'
+WatchdogSec=10
+TimeoutStopSec=5
+Restart=always
+RestartSec=2
+RuntimeDirectory=tpfand
+Nice=-5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,31 @@
+---
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: tpfand controller simulation
+        run: python3 tests/sim_test.py
+
+      - name: tpfand regression tests (fake fan / sensors)
+        run: python3 tests/regress_test.py
+
+      - name: Install Ansible tooling
+        run: pip install ansible-core ansible-lint
+
+      - name: Playbook syntax check
+        run: ansible-playbook --syntax-check playbook.yaml
+
+      - name: ansible-lint
+        run: ansible-lint
